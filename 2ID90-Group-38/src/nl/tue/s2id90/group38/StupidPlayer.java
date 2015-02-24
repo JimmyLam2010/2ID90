@@ -1,4 +1,4 @@
-package nl.tue.s2id90.group38;
+ package nl.tue.s2id90.group38;
 
 
 import nl.tue.s2id90.draughts.DraughtsState;
