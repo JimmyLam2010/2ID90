@@ -3,18 +3,19 @@ package nl.tue.s2id90.group38;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nl.tue.s2id90.draughts.DraughtsState;
 import nl.tue.s2id90.draughts.player.DraughtsPlayer;
 import org10x10.dam.game.Move;
 
 /**
  *
- * @author s116880
+ * @author s116880 and s122041
  */
 public class MYPlayer extends DraughtsPlayer {
     
-        //Multipliers to increase the score for being in a certain spot, when the current
-    //player is white
+    //Multipliers to increase the score for being in a certain spot, when the current player is white
     final double[] whiteMultipliers
             = {
                 1.20, 1.20, 1.20, 1.20, 1.20,
@@ -28,6 +29,7 @@ public class MYPlayer extends DraughtsPlayer {
                 1.00, 1.00, 1.00, 1.00, 1.10,
                 1.20, 1.20, 1.20, 1.20, 1.20
             };
+    //Multipliers to increase the score for being in a certain spot, when the current player is black
     final double[] blackMultipliers
             = {
                 1.20, 1.20, 1.20, 1.20, 1.20,
@@ -42,17 +44,29 @@ public class MYPlayer extends DraughtsPlayer {
                 1.20, 1.20, 1.20, 1.20, 1.20
             };
     
+    //selected multiplier array.
     double[] boardMultipliers;
+    
+    //the best evaluation in a round
     int bestEvaluation;
+    
+    //to determine whether the pieces are black or white
     boolean isWhite;
+    
+    //stop sign
     boolean stop = false;
+    
+    //the value to be returned
     int value;
+    
+    //the value of how much it worths
     int piece = 10, king = 20, enemyPiece = -7, enemyKing = -14;
     
     public MYPlayer() {
         super(MYPlayer.class.getResource("resources/optimist.png"));
     }
     
+    //return the best move
     @Override
     public Move getMove(DraughtsState s) {
         GameNode node = new GameNode(s);
@@ -74,11 +88,15 @@ public class MYPlayer extends DraughtsPlayer {
             if (depth >= maxDepth) {
                 break;
             }
-            value = alphaBetaMax(node, min, max, 0, depth);
+            try {
+                value = alphaBetaMax(node, min, max, 0, depth);
+            } catch (AIStoppedException ex) {
+                Logger.getLogger(MYPlayer.class.getName()).log(Level.SEVERE, null, ex);
+            }
             depth++;
         }
         
-        //a random move
+        //return a random move
         if (node.getBestMove() == null || !s.getMoves().contains(node.getBestMove())) {
             List<Move> moves = s.getMoves();
             Collections.shuffle(moves);
@@ -87,13 +105,23 @@ public class MYPlayer extends DraughtsPlayer {
         return node.getBestMove();
     }
     
-    public int alphaBetaMax(GameNode node, int alpha, int beta, int depth, int maxDepth) {
+    //the alpha-beta maximum search 
+    public int alphaBetaMax(GameNode node, int alpha, int beta, int depth, int maxDepth) throws AIStoppedException{
         DraughtsState state = node.getState();
         if (depth >= maxDepth) {
             return evaluate(state, true);
         }
+        if(stop) {
+          stop = false;
+          throw new AIStoppedException ( ) ;
+        }
         List<Move> moves = state.getMoves();
         for (Move move : moves) {
+            if(stop) {
+               stop = false;
+               throw new AIStoppedException ( ) ;
+            }
+            
             state.doMove(move);
             alpha = (int) Math.max(alpha, alphaBetaMin(node, alpha, beta, depth + 1, maxDepth));
             state.undoMove(move);
@@ -107,14 +135,20 @@ public class MYPlayer extends DraughtsPlayer {
         }
         return alpha;
     }
-
-    public int alphaBetaMin(GameNode node, int alpha, int beta, int depth, int maxDepth) {
+    
+    //the alpha-beta minimum search 
+    public int alphaBetaMin(GameNode node, int alpha, int beta, int depth, int maxDepth) throws AIStoppedException {
         DraughtsState state = node.getState();
         if (depth >= maxDepth) {
             return -evaluate(state, false);
         }
         List<Move> moves = state.getMoves();
         for (Move move : moves) {
+            if(stop) {
+               stop = false;
+               throw new AIStoppedException ( ) ;
+            }
+           
             state.doMove(move);
             beta = (int) Math.min(beta, alphaBetaMax(node, alpha, beta, depth + 1, maxDepth));
             state.undoMove(move);
@@ -125,6 +159,7 @@ public class MYPlayer extends DraughtsPlayer {
         return beta;
     }
     
+    //the evaluation function
     public int evaluate(DraughtsState s, boolean maxPlayerTurn) {
         if (s.isEndState()) {
             if (maxPlayerTurn) {
@@ -174,6 +209,7 @@ public class MYPlayer extends DraughtsPlayer {
         }
     }
     
+    //Gamenode to represent a game state and set the best move
     public class GameNode {
         private final DraughtsState gameState;
         private Move bestMove;
@@ -194,13 +230,24 @@ public class MYPlayer extends DraughtsPlayer {
         public void setBestMove(Move move) {
             bestMove = move;
         }
+    }
     
-        public int getValue() {
-            return value;
-        }
+    //return the value
+    @Override
+    public Integer getValue() {
+        return value;
+    }
 
-        public void setValue(int value) {
-            this.value = value;
+    //set the stop to true
+    @Override
+    public void stop() {
+        stop = true;
+    }
+    
+    //throws exception to stop the alpha-beta search
+    public class AIStoppedException extends Exception {
+        public AIStoppedException() {
+            
         }
     }
 }
