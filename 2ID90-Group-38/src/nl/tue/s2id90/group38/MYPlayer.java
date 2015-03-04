@@ -1,6 +1,7 @@
 package nl.tue.s2id90.group38;
 
 
+import java.util.Collections;
 import java.util.List;
 import nl.tue.s2id90.draughts.DraughtsState;
 import nl.tue.s2id90.draughts.player.DraughtsPlayer;
@@ -42,7 +43,6 @@ public class MYPlayer extends DraughtsPlayer {
             };
     
     double[] boardMultipliers;
-    Move bestMove;
     int bestEvaluation;
     boolean isWhite;
     boolean stop = false;
@@ -52,15 +52,17 @@ public class MYPlayer extends DraughtsPlayer {
     public MYPlayer() {
         super(MYPlayer.class.getResource("resources/optimist.png"));
     }
+    
     @Override
     public Move getMove(DraughtsState s) {
+        GameNode node = new GameNode(s);
         if (s.isWhiteToMove()) {
             boardMultipliers = whiteMultipliers;
         } else {
             boardMultipliers = blackMultipliers;
         }
         bestEvaluation = Integer.MIN_VALUE;
-        bestMove = null;
+        node.setBestMove(null);
         stop = false;
         isWhite = s.isWhiteToMove();
         int depth = 1;
@@ -72,24 +74,32 @@ public class MYPlayer extends DraughtsPlayer {
             if (depth >= maxDepth) {
                 break;
             }
-            value = alphaBetaMax(s, min, max, 0, depth);
+            value = alphaBetaMax(node, min, max, 0, depth);
             depth++;
         }
-        return bestMove;
+        
+        //a random move
+        if (node.getBestMove() == null || !s.getMoves().contains(node.getBestMove())) {
+            List<Move> moves = s.getMoves();
+            Collections.shuffle(moves);
+            node.setBestMove(moves.get(0));
+        }
+        return node.getBestMove();
     }
     
-    public int alphaBetaMax(DraughtsState s, int alpha, int beta, int depth, int maxDepth) {
-    if (depth >= maxDepth) {
-        return evaluate(s, true);
-    }
-    List<Move> moves = s.getMoves();
-    for (Move move : moves) {
-            s.doMove(move);
-            alpha = (int) Math.max(alpha, alphaBetaMin(s, alpha, beta, depth + 1, maxDepth));
-            s.undoMove(move);
+    public int alphaBetaMax(GameNode node, int alpha, int beta, int depth, int maxDepth) {
+        DraughtsState state = node.getState();
+        if (depth >= maxDepth) {
+            return evaluate(state, true);
+        }
+        List<Move> moves = state.getMoves();
+        for (Move move : moves) {
+            state.doMove(move);
+            alpha = (int) Math.max(alpha, alphaBetaMin(node, alpha, beta, depth + 1, maxDepth));
+            state.undoMove(move);
             if (alpha > bestEvaluation && depth == 0) {
                 bestEvaluation = alpha;
-                bestMove = move;
+                node.setBestMove(move);
             }
             if (alpha >= beta) {
                 return beta;
@@ -98,15 +108,16 @@ public class MYPlayer extends DraughtsPlayer {
         return alpha;
     }
 
-    public int alphaBetaMin(DraughtsState s, int alpha, int beta, int depth, int maxDepth) {
+    public int alphaBetaMin(GameNode node, int alpha, int beta, int depth, int maxDepth) {
+        DraughtsState state = node.getState();
         if (depth >= maxDepth) {
-            return -evaluate(s, false);
+            return -evaluate(state, false);
         }
-        List<Move> moves = s.getMoves();
+        List<Move> moves = state.getMoves();
         for (Move move : moves) {
-            s.doMove(move);
-            beta = (int) Math.min(beta, alphaBetaMax(s, alpha, beta, depth + 1, maxDepth));
-            s.undoMove(move);
+            state.doMove(move);
+            beta = (int) Math.min(beta, alphaBetaMax(node, alpha, beta, depth + 1, maxDepth));
+            state.undoMove(move);
             if (beta <= alpha) {
                 return alpha;
             }
@@ -129,7 +140,7 @@ public class MYPlayer extends DraughtsPlayer {
         return (int) evaluation;
     }
     
-    public float getPieceValue(int piece, boolean isWhite) {
+    public double getPieceValue(int piece, boolean isWhite) {
         //calculate the value of a certain piece
         if (isWhite) {
             switch (piece) {
@@ -144,8 +155,7 @@ public class MYPlayer extends DraughtsPlayer {
                 case DraughtsState.EMPTY:
                     return 0;
             }
-
-            System.out.println("wrong piece ");
+            
             return -1;
         } else {
             switch (piece) {
@@ -160,8 +170,37 @@ public class MYPlayer extends DraughtsPlayer {
                 case DraughtsState.EMPTY:
                     return 0;
             }
-            System.out.println("wrong piece ");
             return -1;
+        }
+    }
+    
+    public class GameNode {
+        private final DraughtsState gameState;
+        private Move bestMove;
+        private int value;
+    
+        public GameNode(DraughtsState state) {
+            gameState = state;
+        }
+    
+        public DraughtsState getState() {
+            return gameState;
+        }
+    
+        public Move getBestMove() {
+            return bestMove;
+        }
+    
+        public void setBestMove(Move move) {
+            bestMove = move;
+        }
+    
+        public int getValue() {
+            return value;
+        }
+
+        public void setValue(int value) {
+            this.value = value;
         }
     }
 }
