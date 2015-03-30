@@ -25,7 +25,10 @@ public class SpellCorrector {
         String finalSuggestion = "";
         for (String word : words) {
             if (cr.inVocabulary(word) == false) {
-                getCandidateWords(word);
+                HashSet <String> candidateWords = getCandidateWords(word);
+                for (String candidateWord : candidateWords) {
+                    calculateChannelModelProbability(candidateWord, word);
+                }
             } 
         } 
         
@@ -36,11 +39,23 @@ public class SpellCorrector {
     
     public double calculateChannelModelProbability(String suggested, String incorrect) 
     {
-         /** CODE TO BE ADDED **/
-        
+        //check if mistake is insertion
+        String error;
+        String correct;
+        char[] incorrectLetters = incorrect.toCharArray();
+        char[] suggestedLetters = suggested.toCharArray();
+        if (incorrect.length() > suggested.length()) {
+            int i = 1;
+            while (i < suggested.length()) {
+                if (incorrectLetters[i] != suggestedLetters[i]) {
+                   error = Character.toString(incorrectLetters[i-1]) + Character.toString(incorrectLetters[i]);
+                   correct = Character.toString(incorrectLetters[i-1]);
+                }
+            }
         return 0.0;
-    }
-         
+        }
+        return 0.0;
+    }     
       
     public HashSet<String> getCandidateWords(String word)
     {
