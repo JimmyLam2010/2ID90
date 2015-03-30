@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.HashSet;
 
 public class SpellCorrector {
@@ -50,7 +51,7 @@ public class SpellCorrector {
         while (i <= length) {
             for (int j = 0; j <= ALPHABET.length; j++) {
                 letters[i] = ALPHABET[j];
-                String possibleCandidate = letters.toString();
+                String possibleCandidate = Arrays.toString(letters);
                 ListOfWords.add(possibleCandidate);
             }
         }        
