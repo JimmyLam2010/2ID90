@@ -44,9 +44,16 @@ public class SpellCorrector {
     public HashSet<String> getCandidateWords(String word)
     {
         HashSet<String> ListOfWords = new HashSet<String>();
-        
-        /** CODE TO BE ADDED **/
-        
+        int length = word.length();
+        char[] letters = word.toCharArray();
+        int i = 0;
+        while (i <= length) {
+            for (int j = 0; j <= ALPHABET.length; j++) {
+                letters[i] = ALPHABET[j];
+                String possibleCandidate = letters.toString();
+                ListOfWords.add(possibleCandidate);
+            }
+        }        
         return cr.inVocabulary(ListOfWords);
     }          
 }
