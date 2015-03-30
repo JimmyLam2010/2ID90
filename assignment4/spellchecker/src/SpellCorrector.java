@@ -22,6 +22,11 @@ public class SpellCorrector {
             
         String[] words = phrase.split(" ");
         String finalSuggestion = "";
+        for (String word : words) {
+            if (cr.inVocabulary(word) == false) {
+                getCandidateWords(word);
+            } 
+        } 
         
         /** CODE TO BE ADDED **/
         
