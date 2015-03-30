@@ -82,4 +82,3 @@ public class SpellCorrector {
         return cr.inVocabulary(ListOfWords);
     }          
 }
-

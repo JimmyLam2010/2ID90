@@ -117,7 +117,7 @@ public class CorpusReader
         
         String[] words = NGram.split(" ");
         
-        double smoothedCount = (getNGramCount(words[0] + " " + words[1]) + 1) / (getNGramCount(words[0]) + ngrams.size());
+        double smoothedCount = (getNGramCount(words[0] + " " + words[1]) + 1) / (getNGramCount(words[0]) + getVocabularySize());
         
         return smoothedCount;        
     }
