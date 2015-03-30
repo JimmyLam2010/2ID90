@@ -56,23 +56,28 @@ public class SpellCorrector {
                 //Insertion
                 if (i < length - 1) {
                     ListOfWords.add(word.substring(0,i) + ALPHABET[j] + word.substring(i+1,length));
-                    //Transposition
-                    char x = letters[i];
-                    char y = letters[i+1];
-                    letters[i] = y;
-                    letters[i+1] = x;
-                    ListOfWords.add(Arrays.toString(letters));
-                    //Deletion
-                    ListOfWords.add(word.substring(0,i) + word.substring(i+1,length));
                 }
                 else {
                     //Boundary case insertion
                     ListOfWords.add(word.substring(0,i) + ALPHABET[j]);
-                    //Boundary case deletion
-                    ListOfWords.add(word.substring(0,i));
                 }
-                i++;
             }
+            if (i < length - 1) {
+                //Transposition
+                char[] letters = word.toCharArray();
+                char x = letters[i];
+                char y = letters[i+1];
+                letters[i] = y;
+                letters[i+1] = x;
+                ListOfWords.add(Arrays.toString(letters));
+                //Deletion
+                ListOfWords.add(word.substring(0,i) + word.substring(i+1,length));
+            }
+            else {
+                //Boundary case deletion
+                ListOfWords.add(word.substring(0,i));               
+            }
+            i++;
         }
         return cr.inVocabulary(ListOfWords);
     }          
