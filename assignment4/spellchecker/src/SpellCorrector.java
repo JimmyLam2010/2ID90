@@ -1,3 +1,4 @@
+
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -46,15 +47,34 @@ public class SpellCorrector {
     {
         HashSet<String> ListOfWords = new HashSet<String>();
         int length = word.length();
-        char[] letters = word.toCharArray();
         int i = 0;
-        while (i <= length) {
-            for (int j = 0; j <= ALPHABET.length; j++) {
+        while (i < length) {
+            for (int j = 0; j < ALPHABET.length; j++) {
+                //Substitution
+                char[] letters = word.toCharArray();
                 letters[i] = ALPHABET[j];
-                String possibleCandidate = Arrays.toString(letters);
-                ListOfWords.add(possibleCandidate);
+                ListOfWords.add(Arrays.toString(letters));
+                //Insertion
+                if (i < length - 1) {
+                    ListOfWords.add(word.substring(0,i) + ALPHABET[j] + word.substring(i+1,length));
+                    //Transposition
+                    char x = letters[i];
+                    char y = letters[i+1];
+                    letters[i] = y;
+                    letters[i+1] = x;
+                    ListOfWords.add(Arrays.toString(letters));
+                    //Deletion
+                    ListOfWords.add(word.substring(0,i) + word.substring(i+1,length));
+                }
+                else {
+                    //Boundary case insertion
+                    ListOfWords.add(word.substring(0,i) + ALPHABET[j]);
+                    //Boundary case deletion
+                    ListOfWords.add(word.substring(0,i));
+                }
+                i++;
             }
-        }        
+        }
         return cr.inVocabulary(ListOfWords);
     }          
 }
