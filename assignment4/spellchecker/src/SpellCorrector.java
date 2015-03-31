@@ -26,6 +26,9 @@ public class SpellCorrector {
         String finalSuggestion = "";       
         
         for (String word : words) {
+            if(!cr.inVocabulary(word)) {
+                
+            }            
             finalSuggestion = finalSuggestion + word + " ";
         } 
         
@@ -34,13 +37,12 @@ public class SpellCorrector {
     
     public double calculateChannelModelProbability(String suggested, String incorrect) 
     {
-        //check if mistake is insertion
         String error;
         String correct;
         char[] incorrectLetters = incorrect.toCharArray();
         char[] suggestedLetters = suggested.toCharArray();
         //deletion
-        if (incorrect.length() > suggested.length()) {
+        if (incorrect.length() < suggested.length()) {
             for (int i = 0; i < suggested.length(); i++) {
                 if (incorrectLetters[i] != suggestedLetters[i]) {
                    error = Character.toString(incorrectLetters[i-1]) + Character.toString(incorrectLetters[i]);
@@ -50,7 +52,7 @@ public class SpellCorrector {
             }
         }
         //insertion
-        else if (incorrect.length() < suggested.length()) {
+        else if (incorrect.length() > suggested.length()) {
             for (int i = 0; i < incorrect.length(); i++) {
                 if (incorrectLetters[i] != suggestedLetters[i]) {
                     error = Character.toString(incorrectLetters[i]);

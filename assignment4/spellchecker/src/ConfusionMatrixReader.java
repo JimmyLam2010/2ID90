@@ -64,4 +64,12 @@ public class ConfusionMatrixReader {
         Integer count = confusionMatrix.get(error+"|"+correct);
         return count==null?0:count;
     }
+    
+    public int getTotalError() {
+        int count = 0;
+        for (int i : confusionMatrix.values()) {
+            count = count + i;
+        }
+        return count;
+    }
 }
