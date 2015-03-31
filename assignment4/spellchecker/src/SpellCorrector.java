@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class SpellCorrector {
     final private CorpusReader cr;
@@ -28,7 +29,7 @@ public class SpellCorrector {
         String[] words = phrase.split(" ");
         String finalSuggestion = "";
         HashSet<String> candidateWords;
-        HashMap<String, Double> bigramProbabilities = new HashMap<>();
+        TreeMap<Double, String> bigramProbabilities = new TreeMap<>();
         double likelihood = 0;
         double prior = 0;
         double channelProbability = 0;
@@ -38,28 +39,37 @@ public class SpellCorrector {
         
         for (String word : words) {
             if(!cr.inVocabulary(word)) {
+                double currentProbability = - Double.MAX_VALUE;
+                String correctedWord = "";
                 candidateWords = getCandidateWords(word);
                 for (String candidateWord : candidateWords) {
                     likelihood = calculateChannelModelProbability(candidateWord, word);
-                    prior = cr.getNGramCount(candidateWord) / cr.numberOfWords();
+                    prior = (double)cr.getNGramCount(candidateWord) / (double)cr.numberOfWords();
                     channelProbability = likelihood * Math.pow(prior,LAMBDA) * SCALE_FACTOR;
                     if (Arrays.asList(words).indexOf(word) == 0) {
-                        bigramProbability = cr.getSmoothedCount(candidateWord + words[Arrays.asList(words).indexOf(word) + 1]) * channelProbability;
-                        bigramProbabilities.put(candidateWord,bigramProbability);
+                        bigramProbability = cr.getSmoothedCount(candidateWord + " " + words[Arrays.asList(words).indexOf(word) + 1]) * channelProbability;
+                        bigramProbabilities.put(bigramProbability,candidateWord);
                     }
                     else if (Arrays.asList(words).indexOf(word) == words.length) {
-                        bigramProbability = cr.getSmoothedCount(words[Arrays.asList(words).indexOf(word) - 1] + candidateWord) * channelProbability;
-                        bigramProbabilities.put(candidateWord,bigramProbability);
+                        bigramProbability = cr.getSmoothedCount(words[Arrays.asList(words).indexOf(word) - 1] + " " +candidateWord) * channelProbability;
+                        bigramProbabilities.put(bigramProbability,candidateWord);
                     }
                     else {
-                        bigramProbability = cr.getSmoothedCount(words[Arrays.asList(words).indexOf(word) - 1] + candidateWord) * 
-                        cr.getSmoothedCount(candidateWord + words[Arrays.asList(words).indexOf(word) + 1]) * channelProbability;
-                        bigramProbabilities.put(candidateWord,bigramProbability);
+                        bigramProbability = cr.getSmoothedCount(words[Arrays.asList(words).indexOf(word) - 1] + " " + candidateWord) * 
+                        cr.getSmoothedCount(candidateWord + " " + words[Arrays.asList(words).indexOf(word) + 1]) * channelProbability;
+                        bigramProbabilities.put(bigramProbability,candidateWord);
+                    }
+                    if (bigramProbability >currentProbability) {
+                        currentProbability = bigramProbability;
+                        correctedWord = candidateWord;
                     }
                 }
-                word = word;
+                finalSuggestion = finalSuggestion + correctedWord + " ";
             }
-            finalSuggestion = finalSuggestion + word + " ";
+            else {
+                finalSuggestion = finalSuggestion + word + " ";
+            }
+            System.out.println(bigramProbability);
         } 
         return finalSuggestion.trim();
     }
