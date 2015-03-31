@@ -66,6 +66,61 @@ public class CorpusReader
         }
     }
     
+    public int numberOfWords() throws 
+            FileNotFoundException, IOException, NumberFormatException { 
+        FileInputStream fis;
+        fis = new FileInputStream(CNTFILE_LOC);
+        BufferedReader in = new BufferedReader(new InputStreamReader(fis));
+        int totalCount = 0;
+        
+        for (int i = 0; i < getVocabularySize(); i++) {
+            String phrase = in.readLine().trim();
+            String s1;
+            int j = phrase.indexOf(" ");
+            
+            s1 = phrase.substring(0, j);
+            
+            int count = 0;
+            try {
+                count = Integer.parseInt(s1);
+                totalCount = totalCount + count;               
+            } catch (NumberFormatException nfe) {
+                throw new NumberFormatException("NumberformatError: " + s1);
+            }      
+        }
+        return totalCount;
+    }
+    
+    
+    // This methods counts to total amount of times a character of string of character appears in the corpus.
+    public double characterCount(String characters) throws 
+            FileNotFoundException, IOException, NumberFormatException
+    {
+        FileInputStream fis;
+        fis = new FileInputStream(CNTFILE_LOC);
+        BufferedReader in = new BufferedReader(new InputStreamReader(fis));
+        int totalCount = 0;
+        
+        for (int i = 0; i < getVocabularySize(); i++) {
+            String phrase = in.readLine().trim();
+            String s1, s2;
+            int j = phrase.indexOf(" ");
+            
+            s1 = phrase.substring(0, j);
+            s2 = phrase.substring(j + 1, phrase.length());
+            
+            int count = 0;
+            try {
+                count = Integer.parseInt(s1);
+                if (s2.contains(characters)) {
+                    totalCount = totalCount + count;
+                }
+            } catch (NumberFormatException nfe) {
+                throw new NumberFormatException("NumberformatError: " + s1);
+            }  
+        }
+        return totalCount;
+    }
     
     private void readVocabulary() throws FileNotFoundException, IOException {
         vocabulary = new HashSet<>();

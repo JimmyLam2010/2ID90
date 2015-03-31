@@ -1,4 +1,7 @@
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -15,7 +18,7 @@ public class SpellCorrector {
         this.cmr = cmr;
     }
     
-    public String correctPhrase(String phrase)
+    public String correctPhrase(String phrase) throws IOException
     {
         if(phrase == null || phrase.length() == 0)
         {
@@ -23,54 +26,112 @@ public class SpellCorrector {
         }
             
         String[] words = phrase.split(" ");
-        String finalSuggestion = "";       
+        String finalSuggestion = "";
+        HashSet<String> candidateWords;
+        HashMap<String, Double> bigramProbabilities = new HashMap<>();
+        double likelihood = 0;
+        double prior = 0;
+        double channelProbability = 0;
+        double LAMBDA = 1;
+        double SCALE_FACTOR = 1;
+        double bigramProbability = 0;
         
         for (String word : words) {
             if(!cr.inVocabulary(word)) {
-                
-            }            
+                candidateWords = getCandidateWords(word);
+                for (String candidateWord : candidateWords) {
+                    likelihood = calculateChannelModelProbability(candidateWord, word);
+                    prior = cr.getNGramCount(candidateWord) / cr.numberOfWords();
+                    channelProbability = likelihood * Math.pow(prior,LAMBDA) * SCALE_FACTOR;
+                    if (Arrays.asList(words).indexOf(word) == 0) {
+                        bigramProbability = cr.getSmoothedCount(candidateWord + words[Arrays.asList(words).indexOf(word) + 1]) * channelProbability;
+                        bigramProbabilities.put(candidateWord,bigramProbability);
+                    }
+                    else if (Arrays.asList(words).indexOf(word) == words.length) {
+                        bigramProbability = cr.getSmoothedCount(words[Arrays.asList(words).indexOf(word) - 1] + candidateWord) * channelProbability;
+                        bigramProbabilities.put(candidateWord,bigramProbability);
+                    }
+                    else {
+                        bigramProbability = cr.getSmoothedCount(words[Arrays.asList(words).indexOf(word) - 1] + candidateWord) * 
+                        cr.getSmoothedCount(candidateWord + words[Arrays.asList(words).indexOf(word) + 1]) * channelProbability;
+                        bigramProbabilities.put(candidateWord,bigramProbability);
+                    }
+                }
+                word = word;
+            }
             finalSuggestion = finalSuggestion + word + " ";
         } 
-        
         return finalSuggestion.trim();
     }
     
-    public double calculateChannelModelProbability(String suggested, String incorrect) 
+    public double calculateChannelModelProbability(String suggested, String incorrect) throws IOException 
     {
         String error;
         String correct;
+        double likelihood = 0;
         char[] incorrectLetters = incorrect.toCharArray();
         char[] suggestedLetters = suggested.toCharArray();
-        //deletion
+        //Calculate the chances of the error having been caused by deletion (x typed instead of xy)
         if (incorrect.length() < suggested.length()) {
-            for (int i = 0; i < suggested.length(); i++) {
-                if (incorrectLetters[i] != suggestedLetters[i]) {
-                   error = Character.toString(incorrectLetters[i-1]) + Character.toString(incorrectLetters[i]);
-                   correct = Character.toString(suggestedLetters[i-1]);
-                   return cmr.getConfusionCount(error, correct);
-                }
-            }
-        }
-        //insertion
-        else if (incorrect.length() > suggested.length()) {
+            //Doesn't check last letter as this would cause problems with the comparison in the if statement.
             for (int i = 0; i < incorrect.length(); i++) {
                 if (incorrectLetters[i] != suggestedLetters[i]) {
-                    error = Character.toString(incorrectLetters[i]);
-                    correct = Character.toString(suggestedLetters[i-1]) + Character.toString(suggestedLetters[i]);;
-                    return cmr.getConfusionCount(error, correct);
+                   error = Character.toString(incorrectLetters[i]);
+                   correct = Character.toString(suggestedLetters[i]) + Character.toString(suggestedLetters[i+1]);
+                   likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
+                }
+            }
+            //If the deleted letter is the last letter of the word.
+            if (Character.toString(incorrectLetters[incorrect.length() - 1]).equals(Character.toString(suggestedLetters[suggested.length() - 2]))) {
+                error = Character.toString(incorrectLetters[incorrect.length() - 1]);
+                correct = Character.toString(suggestedLetters[suggested.length() - 2]) + 
+                          Character.toString(suggestedLetters[suggested.length() - 1]);
+                likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
+            }
+        }        
+        //Calculate the chances of the error having been caused by instertion (xy typed instead of x)
+        else if (incorrect.length() > suggested.length()) {
+            for (int i = 1; i < suggested.length(); i++) {
+                if (incorrectLetters[i] != suggestedLetters[i]) {
+                    error = Character.toString(incorrectLetters[i-1]) + Character.toString(incorrectLetters[i]);
+                    correct = Character.toString(suggestedLetters[i-1]);
+                    likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
                 }    
+            }
+            //If the letter was inserted after the final letter of the suggested word.
+            if (Character.toString(incorrectLetters[incorrect.length() - 2]).equals(Character.toString(suggestedLetters[suggested.length() - 1]))) {
+                error = Character.toString(incorrectLetters[incorrect.length() - 2]) +
+                        Character.toString(incorrectLetters[incorrect.length() - 1]);
+                correct = Character.toString(suggestedLetters[suggested.length() - 1]);
+                likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
             }
         }
         else {
-            for (int i = 0; i < incorrect.length(); i++) {
+            for (int i = 0; i < incorrect.length() - 1; i++) {
                 if (incorrectLetters[i] != suggestedLetters[i]) {
-                    error = Character.toString(incorrectLetters[i]);
-                    correct = Character.toString(suggestedLetters[i]);
-                    return cmr.getConfusionCount(error, correct);
+                    //Substitution
+                    if (incorrectLetters[i+1] == suggestedLetters[i+1]) {
+                        error = Character.toString(incorrectLetters[i]);
+                        correct = Character.toString(suggestedLetters[i]);
+                        likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
+                    }
+                    //Transposition
+                    else {
+                        error = Character.toString(incorrectLetters[i]) + Character.toString(incorrectLetters[i+1]);
+                        correct = Character.toString(suggestedLetters[i]) + Character.toString(suggestedLetters[i+1]);
+                        likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
+                    }
                 }    
             }
+            //Last letter of the word has been substituted
+            if (incorrectLetters[incorrect.length()-1] != suggestedLetters[suggested.length()-1] && 
+                incorrectLetters[incorrect.length()-2] == suggestedLetters[suggested.length()-2]) {
+                    error = Character.toString(incorrectLetters[incorrect.length()-1]);
+                    correct = Character.toString(suggestedLetters[suggested.length()-1]);
+                    likelihood = cmr.getConfusionCount(error, correct) / cr.characterCount(correct);
+            }
         }
-        return 0.0;
+    return likelihood;    
     }     
       
     public HashSet<String> getCandidateWords(String word)
